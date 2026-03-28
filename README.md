@@ -4,14 +4,16 @@ Dev environment bootstrap for Windows - one command to install everything.
 
 ## Quick Start (One-Liner)
 
+git raw :
+
 ```powershell
-irm https://yourdomain.com/setup.ps1 | iex
+irm https://raw.githubusercontent.com/ull0sm/dev-init/refs/heads/main/setup.ps1 | iex
 ```
 
 Or clone and run locally:
 
 ```powershell
-git clone https://github.com/yourname/dev-init.git
+git clone https://github.com/ull0sm/dev-init.git
 cd dev-init
 .\setup.ps1
 ```
