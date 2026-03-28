@@ -36,28 +36,49 @@ function Get-LatestVersion {
 
 function Install-App {
     param([string]$AppId, [string]$Description)
-    Write-Host "[INFO] Checking latest version of $AppId..." -ForegroundColor Cyan
+
+    Write-Host "[INFO] Checking $Description..." -ForegroundColor Cyan
+
+    # Get installed version safely
+    $installedVersion = $null
+    try {
+        $installedRaw = winget list --id $AppId --exact --accept-source-agreements 2>$null
+
+        if ($installedRaw) {
+            $lines = $installedRaw | Select-Object -Skip 2
+            foreach ($line in $lines) {
+                if ($line -match $AppId) {
+                    $parts = $line -split '\s{2,}'
+                    if ($parts.Length -ge 2) {
+                        $installedVersion = $parts[1]
+                    }
+                }
+            }
+        }
+    } catch {}
+
+    # Get latest version
     $latestVersion = Get-LatestVersion -AppId $AppId
-    
-    $installed = winget list --id $AppId --exact 2>$null | Select-Object -Skip 3 | Select-String -Pattern "^$AppId"
-    
-    if ($installed) {
-        $installedVersion = ($installed -split '\s+')[1]
-        Write-Host "[INFO] $Description installed: $installedVersion (latest: $latestVersion)" -ForegroundColor Yellow
-        $update = Read-Host "Update to latest? (y/N)"
-        if ($update -ne "y" -and $update -ne "Y") {
-            Write-Host "[SKIP] Keeping current version" -ForegroundColor Yellow
+
+    if ($installedVersion) {
+        Write-Host "[INFO] Installed: $installedVersion | Latest: $latestVersion" -ForegroundColor Yellow
+        $update = Read-Host "Update? (y/N)"
+        if ($update -notin @("y","Y")) {
+            Write-Host "[SKIP] $Description" -ForegroundColor Yellow
             return
         }
+
+        winget upgrade --id $AppId -e --silent --accept-package-agreements --accept-source-agreements
     }
-    
-    Write-Host "[INSTALL] $Description ($latestVersion)..." -ForegroundColor Cyan
-    winget install --id $AppId -e --silent --accept-package-agreements --accept-source-agreements
-    
+    else {
+        Write-Host "[INSTALL] Installing $Description..." -ForegroundColor Cyan
+        winget install --id $AppId -e --silent --accept-package-agreements --accept-source-agreements
+    }
+
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[OK] $Description installed" -ForegroundColor Green
+        Write-Host "[OK] $Description ready" -ForegroundColor Green
     } else {
-        Write-Host "[ERROR] Failed to install $Description" -ForegroundColor Red
+        Write-Host "[ERROR] Failed: $Description" -ForegroundColor Red
     }
 }
 
